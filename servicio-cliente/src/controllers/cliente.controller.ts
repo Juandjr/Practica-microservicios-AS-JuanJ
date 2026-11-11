@@ -13,7 +13,7 @@ export const obtenerClienteID = async (id: number) => {
 };
 
 export const crearCliente = async (data: any) => {
-  if (data!) {
+  if (!data) {
     throw Error("No puede estar vacio");
   }
   return await Cliente.create(data);
