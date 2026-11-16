@@ -3,12 +3,11 @@ from models.producto import Producto
 from schemas.producto import ProductoCreate
 
 def obtener_productos(db : Session):
-    return db.query(Producto).all
+    return db.query(Producto).all()
 
 def obtener_producto_id(db: Session, codigo: int):
-    return db.query(Producto).filter(Producto.codigo == codigo)
+    return db.query(Producto).filter(Producto.codigo == codigo).first()
 
-#crear producto
 def crear_producto(db: Session, producto: ProductoCreate):
     nuevo_producto = Producto(
         nombre=producto.nombre,

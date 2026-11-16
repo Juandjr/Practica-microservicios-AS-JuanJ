@@ -4,8 +4,8 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 engine = create_engine("sqlite:///./producto.db")
 
 sessionLocal = sessionmaker(
-    autoflush=False
-    autocommit=False
+    autoflush=False,
+    autocommit=False,
     bind=engine
 )
 
@@ -17,5 +17,6 @@ def obtener_db():
         yield db
     except:
         print("Ocurrio un problema al conectar a la base de datos")
+        raise
     finally:
         db.close()
