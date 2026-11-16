@@ -22,9 +22,19 @@ export const clienteRouter = (app: FastifyInstance) => {
 
   app.post("/clientes", async (req, res) => {
     try {
-      const cliente = req.body;
-      const nuevoCliente = await crearCliente(cliente);
-      return res.code(201).send(nuevoCliente);
+      const { nombre, direccion, telefono } = (req.body as any) || {};
+      if (!nombre?.trim() || !direccion?.trim() || !telefono?.trim()) {
+        res.code(400).send({
+          mensaje: "El nombre, dirección y teléfono son obligatorios.",
+        });
+      } else if (!/^\d{10}$/.test(telefono.trim())) {
+        res.code(400).send({
+          mensaje: "El teléfono debe contener exactamente 10 dígitos.",
+        });
+      } else {
+        const cliente = await crearCliente(req.body);
+        res.code(201).send(cliente);
+      }
     } catch (error) {
       console.log("Error al crear el cliente");
       res.code(400).send({ mensaje: "Error al crear el cliente" });
@@ -34,11 +44,22 @@ export const clienteRouter = (app: FastifyInstance) => {
   app.put("/clientes/:id", async (req, res) => {
     try {
       const { id } = req.params as any;
-      const cliente = req.body;
-      return await actualizarClienteID(id, cliente);
+      const { nombre, direccion, telefono } = (req.body as any) || {};
+
+      if (!nombre?.trim() || !direccion?.trim() || !telefono?.trim()) {
+        res.code(400).send({
+          mensaje: "El nombre, dirección y teléfono son obligatorios.",
+        });
+      } else if (!/^\d{10}$/.test(telefono.trim())) {
+        res.code(400).send({
+          mensaje: "El teléfono debe contener exactamente 10 dígitos.",
+        });
+      } else {
+        return await actualizarClienteID(id, req.body);
+      }
     } catch (error) {
-      console.log("Error al crear el cliente");
-      res.code(400).send({ mensaje: "Error al crear el cliente" });
+      console.log("Error al actualizar el cliente");
+      res.code(400).send({ mensaje: "Error al actualizar el cliente" });
     }
   });
 
