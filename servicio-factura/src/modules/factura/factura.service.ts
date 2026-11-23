@@ -4,12 +4,17 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { db } from '../../prisma/db';
-import { Factura } from '../../models/factura.model';
-import { DetalleFactura } from '../../models/detalle-factura.model';
+import { db } from '../../prisma/db.js';
+import { Factura } from '../../models/factura.model.js';
+import { DetalleFactura } from '../../models/detalle-factura.model.js';
+import { ProductoClienteService } from '../../service/producto-cliente.service.js';
 
 @Injectable()
 export class FacturaService {
+  constructor(
+    private readonly productoClienteService: ProductoClienteService,
+  ) {}
+
   async crear(data: Factura) {
     const factura = await db.orm.Factura.where({ codigo: data.codigo }).first();
     if (factura) {
@@ -28,6 +33,7 @@ export class FacturaService {
     if (!factura) {
       throw new NotFoundException('Factura no encontrada');
     }
+    return factura;
   }
 
   async actualizar(codigo: string, data: Partial<Factura>) {
@@ -52,11 +58,74 @@ export class FacturaService {
   }
 
   //Detalle de factura
-  async agregarDetalle(codigo: string, data: DetalleFactura) {}
+  async agregarDetalle(
+    codigo: string,
+    detalle: Omit<DetalleFactura, 'codigo' | 'subtotal'>,
+  ) {
+    const factura = await this.consultar(codigo);
+    const producto = await this.productoClienteService.consultar(
+      detalle.cod_producto,
+    );
+
+    const nuevoDetalle: DetalleFactura = {
+      ...detalle,
+      codigo: (factura.detalles_factura.length ?? 0) + 1,
+      subtotal: detalle.cantidad * producto.precio,
+    };
+
+    const detalles = [...(factura.detalles_factura ?? []), nuevoDetalle];
+
+    return db.orm.Factura.where({ codigo }).update({
+      detalles_factura: detalles,
+    });
+  }
 
   //PATCH
-  async actualizarDetalle() {}
+  async actualizarDetalleFactura(
+    codigo: string,
+    codigoDetalle: number,
+    data: Partial<DetalleFactura>,
+  ) {
+    const factura = await this.consultar(codigo);
+    const detalle = factura.detalles_factura.find(
+      (d) => d.codigo === codigoDetalle,
+    );
+    if (!detalle) {
+      throw new NotFoundException('Detalle no encontrado');
+    }
+
+    const cambios = { ...detalle, ...data, codigo: codigoDetalle };
+    cambios.subtotal = await this.calcularSubtotal(
+      cambios.cod_producto,
+      cambios.cantidad,
+    );
+
+    return db.orm.Factura.where({ codigo }).update({
+      detalles_factura: factura.detalles_factura.map((d) =>
+        d.codigo === codigoDetalle ? cambios : d,
+      ),
+    });
+  }
 
   //Eliminar Detalle
-  async eliminarDetalle() {}
+  async eliminarDetalle(codigo: string, detalleId: number) {
+    const factura = await db.orm.Factura.where({ codigo }).first();
+    if (!factura) {
+      throw new NotFoundException('Factura no encontrada');
+    }
+    const detalles = factura.detalles_factura.filter(
+      (d) => d.codigo !== detalleId,
+    );
+    if (detalles.length === factura.detalles_factura.length) {
+      throw new NotFoundException('Detalle no encontrado');
+    }
+    return db.orm.Factura.where({ codigo: factura.codigo }).update({
+      detalles_factura: detalles,
+    });
+  }
+
+  public async calcularSubtotal(cod_producto: number, cantidad: number) {
+    const producto = await this.productoClienteService.consultar(cod_producto);
+    return producto.precio * cantidad;
+  }
 }
