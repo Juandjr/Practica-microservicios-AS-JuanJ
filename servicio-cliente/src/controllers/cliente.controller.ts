@@ -1,25 +1,23 @@
-import { Cliente } from "../models/cliente.model.ts";
+import { Cliente } from "../models/cliente.model";
 
 export const obtenerClientes = async () => {
   return Cliente.findAll();
 };
-
-export const obtenerClienteID = async (id: number) => {
+export const obtenerClienteId = async (id: number) => {
   const cliente = await Cliente.findByPk(id);
   if (!cliente) {
     throw Error("Cliente no encontrado");
   }
   return cliente;
 };
-
+//ORM SIQUALIZE PARA NO PONER SENTENCIAS SQL
+//FUNCION FLECHA
 export const crearCliente = async (data: any) => {
-  if (!data) {
-    throw Error("No puede estar vacio");
-  }
+  validarDatos(data);
   return await Cliente.create(data);
 };
-
-export const actualizarClienteID = async (id: number, data: any) => {
+//
+export const actualizarCliente = async (id: number, data: any) => {
   const cliente = await Cliente.findByPk(id);
   if (!cliente) {
     throw Error("Cliente no encontrado");
@@ -27,12 +25,27 @@ export const actualizarClienteID = async (id: number, data: any) => {
   await cliente.update(data);
   return cliente;
 };
-
+//
 export const eliminarCliente = async (id: number) => {
   const cliente = await Cliente.findByPk(id);
   if (!cliente) {
     throw Error("Cliente no encontrado");
   }
   await cliente.destroy();
-  return { mensaje: "Eliminado correctamente" };
+  return { mensaje: "Cliente eliminado correctamente" };
+};
+
+//validación que los datos existan codigo modular
+
+export const validarDatos = (data: any) => {
+  if (!data || Object.keys(data).length === 0) {
+    throw Error("Datos incorrectos");
+  }
+};
+
+//validar que el telefono tenga 10 digitos
+export const validarTelefono = (telefono: string) => {
+  if (!/^\d{10}$/.test(telefono)) {
+    throw Error("El teléfono debe tener 10 dígitos");
+  }
 };
